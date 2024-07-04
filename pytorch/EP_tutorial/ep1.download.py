@@ -2,7 +2,6 @@
 from urllib.request import Request, urlopen
 from os.path import exists, join
 from os import mkdir
-from tqdm import tqdm
 
 import argparse
 

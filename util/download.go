@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,8 +11,12 @@ import (
 	"strings"
 	"sync"
 	"time"
-	// "github.com/vbauerster/mpb/v7"
-	// "github.com/vbauerster/mpb/v7/decor"
+)
+
+const (
+	catURL          = "https://raw.githubusercontent.com/asharov/cute-animal-detector/master/data/kitty-urls.txt"
+	dogURL          = "https://raw.githubusercontent.com/iblh/not-cat/master/urls/not-cat/dog-urls.txt"
+	timeoutDuration = 5 * time.Second
 )
 
 // func downloadImage(ctx context.Context, url string, wg *sync.WaitGroup, p *mpb.Progress) {
@@ -22,6 +27,7 @@ func downloadImage(ctx context.Context, url string, animal string, idx int, wg *
 	}()
 
 	select {
+	// called if context is `canceled` or `timedout`
 	case <-ctx.Done():
 		return nil
 	default:
@@ -113,27 +119,28 @@ func createDirIfNotExist(dir string) error {
 }
 
 func main() {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
 	defer cancel()
 
-	animal := "dog"
-	listUrl := ""
-	if animal == "cat" {
-		listUrl = "https://raw.githubusercontent.com/asharov/cute-animal-detector/master/data/kitty-urls.txt"
-	} else if animal == "dog" {
-		listUrl = "https://raw.githubusercontent.com/iblh/not-cat/master/urls/not-cat/dog-urls.txt"
+	dict := map[string]string{
+		"cat": catURL,
+		"dog": dogURL,
 	}
 
+	// go run main.go -animal=dog
+	// go run main.go -animal=cat
+	animal := *flag.String("animal", "cat", "Specify animal for downloading images.")
+	listUrl := dict[animal]
+
+	// Now 'urls' contains the list of URLs for the given animal
 	urls, err := getImageUrls(ctx, listUrl)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	// Now 'urls' contains the list of URLs
-	fmt.Println(len(urls))
-
 	// Create the directory if it does not exist
+	// dir := fmt.Sprintf("./pytorch/EP_tutorial/data/%s/", animal+"s")
 	dir := fmt.Sprintf("./data/%s/", animal+"s")
 	err = createDirIfNotExist(dir)
 	if err != nil {
